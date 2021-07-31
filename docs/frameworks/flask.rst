@@ -1,5 +1,5 @@
 Using with Flask/Quart
-================
+======================
 
 This guide explains how to use libsass with the Flask_ web framework.
 :mod:`sassutils` package provides several tools that can be integrated
