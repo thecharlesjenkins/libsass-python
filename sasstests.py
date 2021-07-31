@@ -27,6 +27,7 @@ import sassc
 from sassutils._compat import collections_abc
 from sassutils.builder import Manifest, build_directory
 from sassutils.wsgi import SassMiddleware
+from sassutils.asgi import SassMiddleware as ASGISassMiddleware
 
 
 if os.sep != '/' and os.altsep:  # pragma: no cover (windows)
@@ -856,7 +857,7 @@ class WsgiTestCase(BaseTestCase):
                     __name__: {
                         'sass_path': src_dir,
                         'css_path': css_dir,
-                        'wsgi_path': '/static',
+                        'sgi_path': '/static',
                         'strip_extension': True,
                     },
                 },
@@ -877,7 +878,91 @@ class WsgiTestCase(BaseTestCase):
                     __name__: {
                         'sass_path': 'test',
                         'css_path': css_dir,
-                        'wsgi_path': '/static',
+                        'sgi_path': '/static',
+                        'strip_extension': True,
+                    },
+                },
+            )
+            client = Client(app, Response)
+            r = client.get('/static/h.css')
+            assert r.status_code == 200
+            expected = (
+                'a b {\n  color: blue; }\n\n'
+                '/*# sourceMappingURL=h.css.map */'
+            )
+            self.assertEqual(expected.encode(), r.data)
+            assert r.mimetype == 'text/css'
+
+
+class AsgiTestCase(BaseTestCase):
+
+    @staticmethod
+    async def sample_asgi_app(scope, receive, send):
+        await send({
+                    "type": "http.response.start",
+                    "status": "200",
+                    "headers": [('Content-Type', 'text/plain')],
+        })
+        return scope['path'],
+
+    def test_asgi_sass_middleware(self):
+        with tempdir() as css_dir:
+            src_dir = os.path.join(css_dir, 'src')
+            shutil.copytree('test', src_dir)
+            with pytest.warns(FutureWarning):
+                app = ASGISassMiddleware(
+                    self.sample_asgi_app, {
+                        __name__: (src_dir, css_dir, '/static'),
+                    },
+                )
+            client = Client(app, Response)
+            r = client.get('/asdf')
+            assert r.status_code == 200
+            self.assertEqual(b'/asdf', r.data)
+            assert r.mimetype == 'text/plain'
+            r = client.get('/static/a.scss.css')
+            assert r.status_code == 200
+            self.assertEqual(
+                b(_map_in_output_dir(A_EXPECTED_CSS_WITH_MAP)),
+                r.data,
+            )
+            assert r.mimetype == 'text/css'
+            r = client.get('/static/not-exists.sass.css')
+            assert r.status_code == 200
+            self.assertEqual(b'/static/not-exists.sass.css', r.data)
+            assert r.mimetype == 'text/plain'
+
+    def test_asgi_sass_middleware_without_extension(self):
+        with tempdir() as css_dir:
+            src_dir = os.path.join(css_dir, 'src')
+            shutil.copytree('test', src_dir)
+            app = ASGISassMiddleware(
+                self.sample_asgi_app, {
+                    __name__: {
+                        'sass_path': src_dir,
+                        'css_path': css_dir,
+                        'sgi_path': '/static',
+                        'strip_extension': True,
+                    },
+                },
+            )
+            client = Client(app, Response)
+            r = client.get('/static/a.css')
+            assert r.status_code == 200
+            expected = A_EXPECTED_CSS_WITH_MAP
+            expected = expected.replace('.scss.css', '.css')
+            expected = _map_in_output_dir(expected)
+            self.assertEqual(expected.encode(), r.data)
+            assert r.mimetype == 'text/css'
+
+    def test_asgi_sass_middleware_without_extension_sass(self):
+        with tempdir() as css_dir:
+            app = ASGISassMiddleware(
+                self.sample_asgi_app, {
+                    __name__: {
+                        'sass_path': 'test',
+                        'css_path': css_dir,
+                        'sgi_path': '/static',
                         'strip_extension': True,
                     },
                 },

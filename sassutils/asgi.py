@@ -119,7 +119,7 @@ class SassMiddleware(object):
         self,
         scope,
         receive,
-        send
+        send,
     ):
         """
             scope: Scope,
@@ -153,9 +153,9 @@ class SassMiddleware(object):
                             "type": "http.response.start",
                             "status": self.error_status,
                             "headers": [
-                                ("Content-Type", "text/css; charset=utf-8")
-                                ],
-                        }
+                                ("Content-Type", "text/css; charset=utf-8"),
+                            ],
+                        },
                     )
                     return [
                         b"/*\n",
@@ -183,9 +183,9 @@ class SassMiddleware(object):
                         "status": "200",
                         "body": read_file(os.path.join(package_dir, result)),
                         "headers": [
-                            ("Content-Type", "text/css; charset=utf-8")
-                            ],
-                    }
+                            ("Content-Type", "text/css; charset=utf-8"),
+                        ],
+                    },
                 )
         return await self.app(scope, receive, send)
 

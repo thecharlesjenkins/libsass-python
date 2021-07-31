@@ -114,7 +114,7 @@ class SassMiddleware(object):
             self.package_dir[package_name] = path
         self.paths = []
         for package_name, manifest in self.manifests.items():
-            wsgi_path = manifest.wsgi_path
+            wsgi_path = manifest.sgi_path
             if not wsgi_path.startswith('/'):
                 wsgi_path = '/' + wsgi_path
             if not wsgi_path.endswith('/'):
