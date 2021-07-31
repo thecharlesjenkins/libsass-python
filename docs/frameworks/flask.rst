@@ -1,4 +1,4 @@
-Using with Flask
+Using with Flask/Quart
 ================
 
 This guide explains how to use libsass with the Flask_ web framework.
@@ -40,7 +40,7 @@ related to building Sass/SCSS:
 
 - The path of the directory which contains Sass/SCSS source files.
 - The path of the directory which the compiled CSS files will go.
-- The path, exposed to HTTP (through WSGI), of the directory that
+- The path, exposed to HTTP (through WSGI/ASGI), of the directory that
   will contain the compiled CSS files.
 
 Every package may have its own manifest.  Paths have to be relative
@@ -111,6 +111,34 @@ And then, if you want to link a compiled CSS file, use the
 
    The linked filename is :file:`style.scss.css`, not just :file:`style.scss`.
    All compiled filenames have trailing ``.css`` suffix.
+
+Differences with Quart
+----------------------
+
+.. seealso::
+
+   Quart --- `Hooking in ASGI Middlewares`__
+      The section which explains how to integrate ASGI middlewares to
+      Quart.
+
+   __ https://pgjones.gitlab.io/quart/how_to_guides/middleware.html
+
+
+:class:`~sassutils.asgi.SassMiddleware` takes two required parameters:
+
+- The ASGI-compliant callable object.
+- The set of manifests represented as a dictionary.
+
+So::
+
+      from quart import Quart
+      from sassutils.asgi import SassMiddleware
+
+      app = Quart(__name__)
+
+      app.asgi_app = SassMiddleware(app.asgi_app, {
+         'myapp': ('static/sass', 'static/css', '/static/css')
+      })
 
 
 Building Sass/SCSS for each deployment

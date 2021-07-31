@@ -139,7 +139,7 @@ class Manifest(object):
             self,
             sass_path,
             css_path=None,
-            wsgi_path=None,
+            sgi_path=None,
             strip_extension=None,
     ):
         if not isinstance(sass_path, string_types):
@@ -154,12 +154,12 @@ class Manifest(object):
                 'css_path must be a string, not ' +
                 repr(css_path),
             )
-        if wsgi_path is None:
-            wsgi_path = css_path
-        elif not isinstance(wsgi_path, string_types):
+        if sgi_path is None:
+            sgi_path = css_path
+        elif not isinstance(sgi_path, string_types):
             raise TypeError(
-                'wsgi_path must be a string, not ' +
-                repr(wsgi_path),
+                'sgi_path must be a string, not ' +
+                repr(sgi_path),
             )
         if strip_extension is None:
             warnings.warn(
@@ -176,7 +176,7 @@ class Manifest(object):
             )
         self.sass_path = sass_path
         self.css_path = css_path
-        self.wsgi_path = wsgi_path
+        self.sgi_path = sgi_path
         self.strip_extension = strip_extension
 
     def resolve_filename(self, package_dir, filename):
