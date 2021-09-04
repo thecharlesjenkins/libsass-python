@@ -1,5 +1,7 @@
+async-asgi-testclient
 coverage
 coverage-enable-subprocess
 pre-commit
 pytest
+pytest-asyncio
 werkzeug>=0.9

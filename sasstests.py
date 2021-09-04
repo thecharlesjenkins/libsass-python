@@ -17,8 +17,9 @@ import traceback
 import unittest
 
 import pytest
-from six import StringIO, b, string_types, text_type
+from six import StringIO, b, string_types, text_type, PY2
 from werkzeug.test import Client
+from async_asgi_testclient import TestClient as ASGIClient
 from werkzeug.wrappers import Response
 
 import pysassc
@@ -905,7 +906,9 @@ class AsgiTestCase(BaseTestCase):
         })
         return scope['path'],
 
-    def test_asgi_sass_middleware(self):
+    @unittest.skipIf(PY2, "not compatible with Python 2")
+    @pytest.mark.asyncio
+    async def test_asgi_sass_middleware(self):
         with tempdir() as css_dir:
             src_dir = os.path.join(css_dir, 'src')
             shutil.copytree('test', src_dir)
@@ -915,24 +918,28 @@ class AsgiTestCase(BaseTestCase):
                         __name__: (src_dir, css_dir, '/static'),
                     },
                 )
-            client = Client(app, Response)
-            r = client.get('/asdf')
-            assert r.status_code == 200
-            self.assertEqual(b'/asdf', r.data)
-            assert r.mimetype == 'text/plain'
-            r = client.get('/static/a.scss.css')
-            assert r.status_code == 200
-            self.assertEqual(
-                b(_map_in_output_dir(A_EXPECTED_CSS_WITH_MAP)),
-                r.data,
-            )
-            assert r.mimetype == 'text/css'
-            r = client.get('/static/not-exists.sass.css')
-            assert r.status_code == 200
-            self.assertEqual(b'/static/not-exists.sass.css', r.data)
-            assert r.mimetype == 'text/plain'
+                print(app)
 
-    def test_asgi_sass_middleware_without_extension(self):
+            async with ASGIClient(app) as client:
+                r = await client.get('/asdf')
+                assert r.status_code == 200
+                self.assertEqual(b'/asdf', r.content)
+                assert r.headers['content-type'] == 'text/plain'
+                r = await client.get('/static/a.scss.css')
+                assert r.status_code == 200
+                self.assertEqual(
+                    b(_map_in_output_dir(A_EXPECTED_CSS_WITH_MAP)),
+                    r.content,
+                )
+                assert r.headers['content-type'] == 'text/css'
+                r = await client.get('/static/not-exists.sass.css')
+                assert r.status_code == 200
+                self.assertEqual(b'/static/not-exists.sass.css', r.content)
+                assert r.headers['content-type'] == 'text/plain'
+
+    @unittest.skipIf(PY2, "not compatible with Python 2")
+    @pytest.mark.asyncio
+    async def test_asgi_sass_middleware_without_extension(self):
         with tempdir() as css_dir:
             src_dir = os.path.join(css_dir, 'src')
             shutil.copytree('test', src_dir)
@@ -946,16 +953,19 @@ class AsgiTestCase(BaseTestCase):
                     },
                 },
             )
-            client = Client(app, Response)
-            r = client.get('/static/a.css')
-            assert r.status_code == 200
-            expected = A_EXPECTED_CSS_WITH_MAP
-            expected = expected.replace('.scss.css', '.css')
-            expected = _map_in_output_dir(expected)
-            self.assertEqual(expected.encode(), r.data)
-            assert r.mimetype == 'text/css'
 
-    def test_asgi_sass_middleware_without_extension_sass(self):
+            async with ASGIClient(app) as client:
+                r = await client.get('/static/a.css')
+                assert r.status_code == 200
+                expected = A_EXPECTED_CSS_WITH_MAP
+                expected = expected.replace('.scss.css', '.css')
+                expected = _map_in_output_dir(expected)
+                self.assertEqual(expected.encode(), r.content)
+                assert r.headers['content-type'] == 'text/css'
+
+    @unittest.skipIf(PY2, "not compatible with Python 2")
+    @pytest.mark.asyncio
+    async def test_asgi_sass_middleware_without_extension_sass(self):
         with tempdir() as css_dir:
             app = ASGISassMiddleware(
                 self.sample_asgi_app, {
@@ -967,15 +977,15 @@ class AsgiTestCase(BaseTestCase):
                     },
                 },
             )
-            client = Client(app, Response)
-            r = client.get('/static/h.css')
-            assert r.status_code == 200
-            expected = (
-                'a b {\n  color: blue; }\n\n'
-                '/*# sourceMappingURL=h.css.map */'
-            )
-            self.assertEqual(expected.encode(), r.data)
-            assert r.mimetype == 'text/css'
+            async with ASGIClient(app) as client:
+                r = await client.get('/static/h.css')
+                assert r.status_code == 200
+                expected = (
+                    'a b {\n  color: blue; }\n\n'
+                    '/*# sourceMappingURL=h.css.map */'
+                )
+                self.assertEqual(expected.encode(), r.content)
+                assert r.headers['content-type'] == 'text/css'
 
 
 class DistutilsTestCase(BaseTestCase):
