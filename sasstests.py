@@ -853,7 +853,7 @@ class WsgiTestCase(BaseTestCase):
                     __name__: {
                         'sass_path': src_dir,
                         'css_path': css_dir,
-                        'wsgi_path': '/static',
+                        'sgi_path': '/static',
                         'strip_extension': True,
                     },
                 },
@@ -874,7 +874,7 @@ class WsgiTestCase(BaseTestCase):
                     __name__: {
                         'sass_path': 'test',
                         'css_path': css_dir,
-                        'wsgi_path': '/static',
+                        'sgi_path': '/static',
                         'strip_extension': True,
                     },
                 },
