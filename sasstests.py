@@ -17,6 +17,7 @@ import unittest
 
 import pytest
 from werkzeug.test import Client
+from async_asgi_testclient import TestClient as ASGIClient
 from werkzeug.wrappers import Response
 
 import pysassc
@@ -24,6 +25,7 @@ import sass
 import sassc
 from sassutils.builder import Manifest, build_directory
 from sassutils.wsgi import SassMiddleware
+from sassutils.asgi import SassMiddleware as ASGISassMiddleware
 
 
 if os.sep != '/' and os.altsep:  # pragma: no cover (windows)
@@ -888,6 +890,48 @@ class WsgiTestCase(BaseTestCase):
             )
             self.assertEqual(expected.encode(), r.data)
             assert r.mimetype == 'text/css'
+
+
+class AsgiTestCase(BaseTestCase):
+
+    @staticmethod
+    async def sample_asgi_app(scope, receive, send):
+        await send({
+                    "type": "http.response.start",
+                    "status": "200",
+                    "headers": [('Content-Type', 'text/plain')],
+        })
+        return scope['path'],
+
+    @pytest.mark.asyncio
+    async def test_asgi_sass_middleware(self):
+        with tempdir() as css_dir:
+            src_dir = os.path.join(css_dir, 'src')
+            shutil.copytree('test', src_dir)
+            with pytest.warns(FutureWarning):
+                app = ASGISassMiddleware(
+                    self.sample_asgi_app, {
+                        __name__: (src_dir, css_dir, '/static'),
+                    },
+                )
+                print(app)
+
+            async with ASGIClient(app) as client:
+                r = await client.get('/asdf')
+                assert r.status_code == 200
+                self.assertEqual(b'/asdf', r.content)
+                assert r.headers['content-type'] == 'text/plain'
+                r = await client.get('/static/a.scss.css')
+                assert r.status_code == 200
+                self.assertEqual(
+                    (_map_in_output_dir(A_EXPECTED_CSS_WITH_MAP)),
+                    r.content,
+                )
+                assert r.headers['content-type'] == 'text/css'
+                r = await client.get('/static/not-exists.sass.css')
+                assert r.status_code == 200
+                self.assertEqual(b'/static/not-exists.sass.css', r.content)
+                assert r.headers['content-type'] == 'text/plain'
 
 
 class DistutilsTestCase(BaseTestCase):
